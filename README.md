@@ -24,8 +24,6 @@ All backend services run in Docker Compose — just copy and run.
 
 
 ### Quick Start (for Django + Next.js)
-cadvisor-dashboard.yaml
-│   │       node-exporter-dashboard.yaml
 1. Clone this repo
    ```bash
    git clone https://github.com/fonkamariam/otel-django-nextjs-toolkit.git
