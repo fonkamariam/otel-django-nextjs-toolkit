@@ -1,0 +1,31 @@
+# django/requirements-otel.txt
+# These are the OpenTelemetry packages needed for auto-instrumentation in Django.
+# Developers: add these lines to your existing requirements.txt (or run pip install -r this file)
+# No code changes needed — these packages auto-instrument Django, DB, logging, etc.
+
+# Core OTEL packages
+opentelemetry-api                  # Base API for traces/metrics/logs
+opentelemetry-sdk                  # Core SDK implementation
+
+# Django-specific auto-instrumentation (HTTP requests, views, middleware)
+opentelemetry-instrumentation-django
+
+# Database instrumentation (auto-captures SQL queries via psycopg2, mysql, etc.)
+opentelemetry-instrumentation-dbapi
+
+# Logging instrumentation (correlates logs with traces via trace_id/span_id)
+opentelemetry-instrumentation-logging
+
+# System/runtime metrics (process CPU, memory, threads, GC, etc.)
+opentelemetry-instrumentation-system-metrics
+
+# OTLP exporter (sends data to collector via gRPC/HTTP)
+opentelemetry-exporter-otlp
+
+# Optional but useful for Django apps
+opentelemetry-instrumentation-jinja2       # Templates rendering time (if using Jinja)
+opentelemetry-instrumentation-requests     # External HTTP calls via requests library (if used)
+
+# Optional: if you use Celery or Redis
+# opentelemetry-instrumentation-celery
+# opentelemetry-instrumentation-redis

@@ -1,0 +1,14 @@
+apiVersion: 1
+
+# This file tells Grafana to load dashboards from a specific folder on disk
+providers:
+  - name: 'cAdvisor Containers'               # Friendly name shown in Grafana UI
+    orgId: 1                                  # Default organization (1)
+    folder: 'Containers'                      # Dashboard will appear in this folder in Grafana
+    type: file                                # Load from filesystem (not database or URL)
+    disableDeletion: false                    # If you delete the YAML/JSON, Grafana removes the dashboard
+    editable: true                            # Users can edit and save changes in Grafana
+    updateIntervalSeconds: 60                 # How often Grafana re-scans for changes (60s)
+    options:
+      path: /etc/grafana/provisioning/dashboards/cadvisor   # Folder inside container where JSON files live
+      # homeDashboardId: 14282              # Optional: make this dashboard the default home page

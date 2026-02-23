@@ -1,0 +1,65 @@
+# otel-collector-config.yml
+# This is the central configuration for the OpenTelemetry Collector.
+# Most values can be overridden via environment variables (see comments).
+# If an env var is not set, the default value in this file is used.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317                          # OTLP gRPC receiver – standard port, do not change
+      http:
+        endpoint: 0.0.0.0:4318                          # OTLP HTTP receiver – fallback, do not change
+
+exporters:
+  debug:                                            # ← Debug exporter: prints telemetry to collector logs
+    verbosity: ${OTEL_COLLECTOR_DEBUG_VERBOSITY:-detailed}  # Options: basic, normal, detailed (default: detailed)
+    # Useful for troubleshooting – disable in production by setting OTEL_COLLECTOR_DEBUG_ENABLED=false
+
+  prometheus:                                       # ← Exposes collected metrics in Prometheus format
+    endpoint: "0.0.0.0:8889"                        # Port Prometheus scrapes – do not change unless you remap
+    namespace: ${OTEL_PROMETHEUS_NAMESPACE:-otelcol}  # Optional prefix for metric names
+
+  otlphttp/loki:                                    # ← Sends logs to Loki via OTLP/HTTP
+    endpoint: http://${LOKI_HOST:-loki}:${LOKI_PORT:-3100}/otlp
+    tls:
+      insecure: ${LOKI_TLS_INSECURE:-true}          # Set to false in production with proper certs
+    # Compression and retry settings (optional overrides)
+    compression: ${OTEL_EXPORTER_COMPRESSION:-gzip}  # none, gzip, deflate, zstd
+
+  otlp_http:                                        # ← Sends traces to Tempo via OTLP/HTTP
+    endpoint: http://${TEMPO_HOST:-tempo}:${TEMPO_PORT:-4318}
+    tls:
+      insecure: ${TEMPO_TLS_INSECURE:-true}
+
+processors:
+  batch:                                            # ← Batches data before export (reduces network calls)
+    timeout: ${OTEL_BATCH_TIMEOUT:-1s}              # How long to wait before sending a batch
+    send_batch_size: ${OTEL_BATCH_SIZE:-8192}       # Max items per batch
+    send_batch_max_size: ${OTEL_BATCH_MAX_SIZE:-16384}
+
+  memory_limiter:                                   # ← Prevents collector from using too much memory
+    check_interval: 1s
+    limit_mib: ${OTEL_MEMORY_LIMIT_MIB:-400}        # Soft limit (in MiB) – adjust based on host
+    spike_limit_mib: ${OTEL_MEMORY_SPIKE_LIMIT_MIB:-100}
+
+service:
+  telemetry:                                        # Collector’s own metrics/logs (useful for monitoring the collector)
+    logs:
+      level: ${OTEL_COLLECTOR_LOG_LEVEL:-info}      # debug, info, warn, error
+
+  pipelines:
+    traces:                                         # Pipeline for traces
+      receivers: [otlp]
+      processors: [batch, memory_limiter]
+      exporters: [otlp_http, debug]                 # debug is optional – remove in prod
+
+    metrics:                                        # Pipeline for metrics
+      receivers: [otlp]
+      processors: [batch, memory_limiter]
+      exporters: [prometheus, debug]
+
+    logs:                                           # Pipeline for logs
+      receivers: [otlp]
+      processors: [batch, memory_limiter]
+      exporters: [otlphttp/loki, debug]

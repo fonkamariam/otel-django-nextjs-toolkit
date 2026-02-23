@@ -1,0 +1,154 @@
+# docker-compose-observability.yml
+# This file contains the full observability backend stack.
+# Developers should copy this file into their project root and run it alongside their app's docker-compose.yml
+# Example command: docker compose -f docker-compose.yml -f docker-compose-observability.yml up -d
+
+version: '3.9'
+
+services:
+  # ────────────────────────────────────────────────
+  # OpenTelemetry Collector - central hub for receiving, processing, and exporting telemetry
+  # Receives OTLP from Django/Next.js SDKs on 4317 (gRPC) and 4318 (HTTP)
+  otel-collector:
+    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro  # ← Mount your config here
+    ports:
+      - "4317:4317"   # OTLP gRPC - most SDKs use this
+      - "4318:4318"   # OTLP HTTP - fallback
+      - "8889:8889"   # Prometheus scrape endpoint (metrics)
+    environment:
+      # Collector own logging & debug
+      - OTEL_COLLECTOR_LOG_LEVEL=info               # debug/info/warn/error
+      - OTEL_COLLECTOR_DEBUG_VERBOSITY=normal       # basic/normal/detailed (for debug exporter)
+      # Batch & memory control
+      - OTEL_BATCH_TIMEOUT=1s                       # How long to wait before sending batch
+      - OTEL_BATCH_SIZE=8192                        # Max items per batch
+      - OTEL_MEMORY_LIMIT_MIB=400                   # Soft memory limit (MiB)
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────────
+  # Tempo - distributed tracing backend (stores traces)
+  tempo:
+    image: grafana/tempo:2.8.0
+    container_name: tempo
+    volumes:
+      - ./tempo.yaml:/etc/tempo/tempo.yaml:ro
+    command: -config.file=/etc/tempo/tempo.yaml
+    ports:
+      - "3200:3200"   # Tempo query UI (optional)
+    environment:
+      - TEMPO_HTTP_PORT=3200                        # Internal HTTP port (matches ports mapping)
+      - TEMPO_LOG_LEVEL=info                        # debug/info/warn/error
+      - TEMPO_TRACE_IDLE_PERIOD=10s                 # Flush idle traces after this time
+      - TEMPO_MAX_BLOCK_DURATION=5m                 # Max duration of a trace block
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────────
+  # Loki - log aggregation backend
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    user: "0"  # Needed for filesystem permissions in some setups
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki-data
+    command: --config.file=/etc/loki/local-config.yaml
+    environment:
+      - LOKI_HTTP_PORT=3100                         # Internal HTTP port (matches ports mapping)
+      - LOKI_RETENTION_PERIOD=168h                  # 7 days – override for longer/shorter
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────────
+  # Promtail - tails container logs and pushes to Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # Docker json-file logs
+      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+    command: -config.file=/etc/promtail/config.yaml
+    environment:
+      - LOKI_HOST=loki                              # Loki service name (internal network)
+      - LOKI_PORT=3100                              # Loki internal port
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────────
+  # Prometheus - metrics time-series storage
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    environment:
+      - PROMETHEUS_SCRAPE_INTERVAL=15s              # How often to scrape targets
+      - PROMETHEUS_EVAL_INTERVAL=15s                # Rule evaluation interval
+      - PROMETHEUS_SCRAPE_TIMEOUT=10s               # Scrape timeout
+    ports:
+      - "9090:9090"   # Prometheus UI
+    restart: unless-stopped
+
+  # ────────────────────────────────────────────────
+  # cAdvisor - container-level metrics (CPU, memory, disk, network per container)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # cAdvisor UI (optional)
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  # ────────────────────────────────────────────────
+  # node_exporter - host-level metrics (CPU, memory, disk, network of the host machine)
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+    ports:
+      - "9100:9100"   # Prometheus scrape target
+
+  # ────────────────────────────────────────────────
+  # Grafana - dashboard & visualization (connects to Prometheus, Loki, Tempo)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"   # Grafana UI - http://localhost:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Change this in production!
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    volumes:
+    - grafana_data:/var/lib/grafana
+    # Provisioning: Grafana reads all *.yaml files inside this folder recursively
+    - ./grafana-provisioning:/etc/grafana/provisioning:ro
+    # Optional: local dashboard JSON files (recommended for offline/fast loading)
+    # - ./grafana-dashboards:/var/lib/grafana/dashboards:ro
+
+volumes:
+  grafana_data:
+  loki_data:
+
+networks:
+  default:
+    name: observability-network

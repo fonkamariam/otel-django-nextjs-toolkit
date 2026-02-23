@@ -1,0 +1,52 @@
+# loki-config.yaml
+# Configuration for Grafana Loki – the log aggregation backend
+# Stores logs pushed from Promtail (and OTEL Collector via OTLP)
+
+auth_enabled: false                                           # Disables authentication for Loki API
+                                                              # Fine for local/dev/testing. In production, set to true and add auth config.
+
+server:
+  http_listen_port: ${LOKI_HTTP_PORT:-3100}                   # Port Loki listens on inside the container
+                                                              # Exposed in docker-compose as "3100:3100"
+                                                              # Override via env var if you need a different internal port
+
+common:
+  instance_addr: 127.0.0.1                                    # Loki instance address (used for ring/gossip – single-node so localhost is fine)
+  path_prefix: /loki                                          # Base path for storage files (chunks, indexes, etc.)
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks                        # Where log chunks (compressed data) are stored
+      rules_directory: /loki/rules                          # Where alerting/recording rules are stored (if any)
+  replication_factor: 1                                       # Single-node mode – no replication needed
+  ring:
+    kvstore:
+      store: inmemory                                       # No external key-value store (etcd/consul) – in-memory for single instance
+
+schema_config:
+  configs:
+    - from: 2024-01-01                                      # Schema applies from this date onward
+      store: tsdb                                           # Use modern TSDB backend (recommended over boltdb-shipper)
+      object_store: filesystem                              # Store chunks/indexes on local disk
+      schema: v13                                           # Latest schema version (v13 is current best – efficient, supports structured metadata)
+      index:
+        prefix: index_                                      # Prefix for index files
+        period: 24h                                         # Create new index every 24 hours (daily indexes)
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/index                     # Where active index files are written
+    cache_location: /loki/index_cache                       # Cache for index queries (speeds up searches)
+  filesystem:
+    directory: /loki/chunks                                 # Where compressed log chunks live
+
+limits_config:
+  retention_period: ${LOKI_RETENTION_PERIOD:-168h}            # How long to keep logs before deletion (168h = 7 days)
+                                                              # Override this env var for longer/shorter retention
+                                                              # Shorter = less disk usage; longer = more history
+  max_label_names_per_series: 30                              # Max number of labels per log stream (prevents label explosion)
+                                                              # High values can cause performance issues in Loki
+  allow_structured_metadata: true                             # CRITICAL for OTLP logs (from OTEL Collector)
+                                                              # Lets Loki store extra attributes (service.name, severity, etc.) as structured metadata
+                                                              # If false, OTLP logs with attributes will be rejected or lose context
+  max_structured_metadata_entries_count: 128                  # Safety limit: max structured metadata keys per log entry
+                                                              # Prevents abuse or very noisy logs

@@ -1,0 +1,55 @@
+# tempo.yaml
+# Configuration for Grafana Tempo – distributed tracing backend
+# Stores traces received from OTEL Collector (via OTLP)
+
+server:
+  http_listen_port: ${TEMPO_HTTP_PORT:-3200}                  # Port for Tempo's HTTP server (query UI + status endpoints)
+                                                              # Exposed in docker-compose as "3200:3200" for Grafana to connect/query
+                                                              # Override via env var if 3200 conflicts on host
+
+  log_level: ${TEMPO_LOG_LEVEL:-info}                         # Logging level for Tempo itself (debug/info/warn/error)
+                                                              # Set to debug for troubleshooting ingestion issues
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318                              # OTLP/HTTP receiver – matches what OTEL Collector sends to
+                                                              # Tempo listens here for traces pushed from collector
+        grpc:
+          endpoint: 0.0.0.0:4317                              # OTLP/gRPC receiver – optional but supported (most SDKs prefer gRPC)
+                                                              # Both are enabled so collector can use either
+
+ingester:
+  trace_idle_period: ${TEMPO_TRACE_IDLE_PERIOD:-10s}          # How long to wait before flushing an idle trace from memory to storage
+                                                              # Shorter = faster visibility in Grafana (good for dev/testing)
+                                                              # Longer = better for high-throughput (less frequent writes)
+
+  max_block_duration: ${TEMPO_MAX_BLOCK_DURATION:-5m}         # Maximum time a trace block stays open before being sealed and written to storage
+                                                              # Small values (like 5m) = quicker search availability
+                                                              # Larger values = fewer blocks, better compression
+
+storage:
+  trace:
+    backend: local                                            # Storage backend – 'local' uses filesystem (simple for dev)
+                                                              # Alternatives: s3, gcs, azure (for production)
+    local:
+      path: /tmp/tempo                                        # Directory inside container where trace blocks are stored
+                                                              # Mounted as volume in docker-compose (or ephemeral if not)
+
+    wal:
+      path: /tmp/tempo/wal                                    # Write-Ahead Log path – critical for durability
+                                                              # Tempo writes incoming traces here first (crash protection)
+      # v2 encoding is more efficient but requires Tempo 2.0+
+      encoding: zstd                                          # Compression algorithm for WAL (zstd is fast + good ratio)
+
+overrides:
+  metrics_generator_processors: []                            # Disables metrics generation from traces (e.g. RED metrics)
+                                                              # Saves CPU if you don't need trace-derived metrics
+                                                              # Keep empty [] unless you want service graph or span metrics
+
+# Single-binary mode – no external gossip/ring needed
+memberlist:
+  join_members: []                                            # No external peers – single node mode (no clustering)
+                                                              # For production HA, you'd add seed members here
