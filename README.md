@@ -65,28 +65,28 @@ All backend services run in Docker Compose — just copy and run.
     (Optional) Local JSON files are in `shared/grafana-dashboards/` for offline loading.
 
 
-Repository Structure
+### Repository Structure
 
-otel-django-nextjs-toolkit/
-├── README.md                        ← You are here — main overview
-├── LICENSE                          ← MIT
-├── shared/                          ← Common observability backend (copy to your project)
-│   ├── docker-compose-observability.yml
-│   ├── otel-collector-config.yml
-│   ├── tempo.yaml
-│   ├── loki-config.yaml
-│   ├── prometheus.yml
-│   ├── promtail-config.yaml
-│   ├── grafana-provisioning/        ← Auto-provisions Grafana dashboards
-│   │   └── cadvisor-dashboard.yaml
-│   │       node-exporter-dashboard.yaml   
-│   └── grafana-dashboards/          ← Optional local JSON copies of dashboards
-├── django/                          ← Django-specific instructions & files
-│   ├── README.md                    ← Django setup guide
-│   ├── requirements-otel.txt
-│   └── startup-otel.sh
-├── nextjs/                          ← Next.js-specific instructions & files
-│   ├── README.md                    ← Next.js setup guide
-│   └── instrumentation.node.ts
-└── docs/                            ← Optional deeper guides
-    └── env-vars-reference.md
+| Path                                      | Description                                                                 |
+|-------------------------------------------|-----------------------------------------------------------------------------|
+| `README.md`                               | Main overview and quick start guide                                         |
+| `LICENSE`                                 | MIT license                                                                 |
+| `shared/`                                 | Common observability backend (copy to your project)                         |
+| ├─ `docker-compose-observability.yml`     | Main compose file for the stack                                             |
+| ├─ `otel-collector-config.yml`            | OTEL Collector configuration                                                |
+| ├─ `tempo.yaml`                           | Tempo (traces) configuration                                                |
+| ├─ `loki-config.yaml`                     | Loki (logs) configuration                                                   |
+| ├─ `prometheus.yml`                       | Prometheus (metrics) configuration                                          |
+| ├─ `promtail-config.yaml`                 | Promtail (container logs) configuration                                     |
+| ├─ `grafana-provisioning/`                | Auto-provisions Grafana dashboards                                          |
+| │  └─ `dashboards/`                       | YAML files that define which dashboards to load                             |
+| └─ `grafana-dashboards/`                  | Optional local JSON copies of dashboards (for offline loading)              |
+| `django/`                                 | Django-specific instructions & files                                        |
+| ├─ `README.md`                            | Django setup guide                                                          |
+| ├─ `requirements-otel.txt`                | OTEL packages to add to requirements.txt                                    |
+| └─ `startup-otel.sh`                      | Startup wrapper with OTEL instrumentation                                   |
+| `nextjs/`                                 | Next.js-specific instructions & files                                       |
+| ├─ `README.md`                            | Next.js setup guide                                                         |
+| └─ `instrumentation.node.ts`              | OTEL SDK setup for Next.js (auto-loaded)                                    |
+| `docs/`                                   | Optional deeper guides                                                      |
+| └─ `env-vars-reference.md`                | Full list of configurable environment variables                             |
