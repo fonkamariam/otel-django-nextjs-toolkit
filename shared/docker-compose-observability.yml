@@ -16,7 +16,7 @@ services:
       - --config=/etc/otel-collector-config.yml
 
     volumes:
-      - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro  # ← Mount your config here
+      - ./shared/otel-collector-config.yml:/etc/otel-collector-config.yml:ro  # ← Mount your config here
     ports:
       - "4317:4317"   # OTLP gRPC - most SDKs use this
       - "4318:4318"   # OTLP HTTP - fallback
@@ -41,7 +41,7 @@ services:
     image: grafana/tempo:2.8.0
     container_name: tempo
     volumes:
-      - ./tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - ./shared/tempo.yaml:/etc/tempo/tempo.yaml:ro
     command: 
       - -config.file=/etc/tempo/tempo.yaml
       - -config.expand-env=true
@@ -64,7 +64,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - ./shared/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki-data
     command: 
       - --config.file=/etc/loki/local-config.yaml
@@ -83,7 +83,7 @@ services:
       - /var/log:/var/log:ro # Host logs (optional, if you want to scrape host logs in addition to container logs)
       - /var/lib/docker/containers:/var/lib/docker/containers:ro  # Scrape Container logs via Docker's json-file logs
       - /var/run/docker.sock:/var/run/docker.sock:ro  # Access Docker API for dynamic service discovery
-      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro # Mount your Promtail config here
+      - ./shared/promtail-config.yaml:/etc/promtail/config.yaml:ro # Mount your Promtail config here
     command: 
       - --config.file=/etc/promtail/config.yaml
       - --config.expand-env=true
@@ -100,7 +100,7 @@ services:
     command: 
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./shared/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     environment:
       - PROMETHEUS_SCRAPE_INTERVAL=15s              # How often to scrape targets
       - PROMETHEUS_EVAL_INTERVAL=15s                # Rule evaluation interval
@@ -145,6 +145,7 @@ services:
     ports:
       - "3000:3000"   # Grafana UI - http://localhost:3000
     environment:
+      - GF_SECURITY_ADMIN_USER=admin  # Change this in production!
       - GF_SECURITY_ADMIN_PASSWORD=admin  # Change this in production!
     depends_on:
       - prometheus
@@ -153,9 +154,9 @@ services:
     volumes:
     - grafana_data:/var/lib/grafana
     # Provisioning: Grafana reads all *.yaml files inside this folder recursively
-    - ./grafana-provisioning:/etc/grafana/provisioning:ro
+    - ./shared/grafana-provisioning:/etc/grafana/provisioning:ro
     # Optional: local dashboard JSON files (recommended for offline/fast loading)
-    # - ./grafana-dashboards:/var/lib/grafana/dashboards:ro
+    # - ./shared/grafana-dashboards:/var/lib/grafana/dashboards:ro
 
 volumes:
   grafana_data:
