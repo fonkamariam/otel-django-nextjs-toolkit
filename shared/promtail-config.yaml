@@ -23,7 +23,7 @@ clients:
                                                               # If you change Loki's name/port, override via env vars in docker-compose.
 
 scrape_configs:
-  # ────────────────────────────────────────────────
+
   # Job 1: Docker container logs (the main one)
   - job_name: docker-containers                               # Name of this scraping job — appears as "job" label in Loki logs
                                                               # Lets you query {job="docker-containers"} in Grafana
@@ -33,19 +33,18 @@ scrape_configs:
         refresh_interval: 5s                                    # How often to re-discover running containers (5s is fast enough)
 
     relabel_configs:                                            # Rules to transform labels before sending to Loki
-      - source_labels: [__meta_docker_container_name]           # Take the container name from Docker metadata
-        target_label: container_name                            # Store it as "container_name" label in Loki
-      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
-        target_label: project                                   # Compose project name (e.g. your app folder name)
+      # FORCE the job label so it shows up in your dropdown
+      - replacement: "docker-containers"
+        target_label: "job"
+      
+      # Map the Service name (Django/NextJS)
       - source_labels: [__meta_docker_container_label_com_docker_compose_service]
-        target_label: service                                   # Compose service name (e.g. "django", "nextjs")
-      - source_labels: [__meta_docker_container_id]
-        target_label: __tmp_container_id                        # Temp store full container ID
-      - source_labels: [__tmp_container_id]
-        regex: (.{12})(.*)                                      # Take first 12 chars of container ID
-        replacement: '${1}'
-        target_label: container_id_short                        # Short ID label (useful for filtering)
+        target_label: "service"
 
+      # Map the Container name (Cleaned)
+      - source_labels: [__meta_docker_container_name]
+        regex: '/(.*)'
+        target_label: "container_name"
       # Drop logs from stopped containers (only keep running ones)
       - action: drop
         regex: ^false$
@@ -53,19 +52,14 @@ scrape_configs:
 
     pipeline_stages:                                            # Processing pipeline for each log line
       - docker: {}                                              # Parses Docker's json-file log format (time, stream, log message)
-      - match:
-          selector: '{container_name=~".+"}'                    # Apply to all containers that have a name
-          stages:
-            - labels:                                           # Add labels to Loki stream
-                container_name:                                 # Makes {container_name="django"} query possible
-                service:
-                project:
-
-  # ────────────────────────────────────────────────
+      
+  
   # Job 2: Host system logs (optional – uncomment if you want /var/log/*.log too)
-  # - job_name: system-logs
-  #   static_configs:
-  #     - targets: [localhost]
-  #       labels:
-  #         job: system
-  #         __path__: /var/log/*.log                            # Tails all files in /var/log (nginx, system, etc.)
+  - job_name: system-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs            # 
+          host: my-docker-host    # Label to identify which server this is
+          __path__: /var/log/*log # Watch all files ending in .log

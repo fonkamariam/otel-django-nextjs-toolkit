@@ -12,7 +12,9 @@ services:
   otel-collector:
     container_name: otel-collector
     image: otel/opentelemetry-collector-contrib:latest
-    command: ["--config=/etc/otel-collector-config.yml"]
+    command: 
+      - --config=/etc/otel-collector-config.yml
+
     volumes:
       - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro  # ← Mount your config here
     ports:
@@ -40,7 +42,10 @@ services:
     container_name: tempo
     volumes:
       - ./tempo.yaml:/etc/tempo/tempo.yaml:ro
-    command: -config.file=/etc/tempo/tempo.yaml
+    command: 
+      - -config.file=/etc/tempo/tempo.yaml
+      - -config.expand-env=true
+             
     ports:
       - "3200:3200"   # Tempo query UI (optional)
     environment:
@@ -61,7 +66,9 @@ services:
     volumes:
       - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki-data
-    command: --config.file=/etc/loki/local-config.yaml
+    command: 
+      - --config.file=/etc/loki/local-config.yaml
+      - --config.expand-env=true
     environment:
       - LOKI_HTTP_PORT=3100                         # Internal HTTP port (matches ports mapping)
       - LOKI_RETENTION_PERIOD=168h                  # 7 days – override for longer/shorter
@@ -73,10 +80,13 @@ services:
     image: grafana/promtail:latest
     container_name: promtail
     volumes:
-      - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # Docker json-file logs
-      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
-    command: -config.file=/etc/promtail/config.yaml
+      - /var/log:/var/log:ro # Host logs (optional, if you want to scrape host logs in addition to container logs)
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # Scrape Container logs via Docker's json-file logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Access Docker API for dynamic service discovery
+      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro # Mount your Promtail config here
+    command: 
+      - --config.file=/etc/promtail/config.yaml
+      - --config.expand-env=true
     environment:
       - LOKI_HOST=loki                              # Loki service name (internal network)
       - LOKI_PORT=3100                              # Loki internal port
@@ -86,7 +96,9 @@ services:
   # Prometheus - metrics time-series storage
   prometheus:
     image: prom/prometheus:latest
-    container_name: prometheus
+    container_name: prometheus  
+    command: 
+      - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     environment:
