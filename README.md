@@ -32,7 +32,7 @@ All backend services run in Docker Compose — just copy and run.
 2. Copy the observability backend to your project
     Copy shared/docker-compose-observability.yml to your project root
     
-    Copy all files from shared/ (otel-collector-config.yml, tempo.yaml, loki-config.yaml, prometheus.yml, promtail-config.yaml, grafana-provisioning/,grafana-dashboards/ (optional — local dashboard JSON files for offline loading)) to your project root
+    Copy all files from shared/ to your project root
     
     Start the stack with these command: docker compose -f docker-compose.yml -f docker-compose-observability.yml up -d
 3. Instrument your Django app → see django/README.md
