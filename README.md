@@ -48,22 +48,21 @@ All backend services run in Docker Compose — just copy and run.
     - Logs: Loki → {service_name="my-django-app"} or {container_name="nextjs"}
 
 # Default Dashboards (Auto-Provisioned)
-    Grafana automatically loads these useful dashboards on first startup — no manual import needed!
-
-    - Container Metrics (cAdvisor)
-        Dashboard ID: 14282 ("cAdvisor exporter")
-        Folder: Containers
-        Shows: CPU, memory, disk, network usage per container
-    - Host System Metrics (node_exporter)
-        Dashboard ID: 1860 ("Node Exporter Full")
-        Folder: Hosts
-        Shows: Host CPU, memory, disk I/O, network, load average
-
-    After starting the stack, open Grafana → left menu → **Dashboards → Browse**  
-    You’ll see the **Containers** and **Hosts** folders with the dashboards ready to use.
-
-    (Optional) Local JSON files are in `shared/grafana-dashboards/` for offline loading.
-
+    
+   Grafana automatically loads these on first startup — no manual import required!
+   
+   ## cAdvisor exporter (ID 14282)
+   Folder: Infrastructure
+   Shows: Per-container CPU usage, memory (RSS/cache), network RX/TX, disk I/O
+   Perfect for spotting resource-heavy containers
+   
+   ## Node Exporter Server Metrics (ID 10242)
+   Folder: Infrastructure
+   Shows: Host-level CPU (per core/mode), memory (used/free/swap), load average, disk space & I/O, network traffic, processes
+   Clean, modern single-host view (use the Host dropdown if multiple nodes appear)
+   
+   To add more (e.g. logs dashboards), place additional JSONs in shared/grafana-dashboards/ — they auto-load via provisioning.
+   
 
 ### Repository Structure
 
@@ -79,8 +78,9 @@ All backend services run in Docker Compose — just copy and run.
 | ├─ `prometheus.yml`                       | Prometheus (metrics) configuration                                          |
 | ├─ `promtail-config.yaml`                 | Promtail (container logs) configuration                                     |
 | ├─ `grafana-provisioning/`                | Auto-provisions Grafana dashboards                                          |
-| │  └─ `dashboards/`                       | YAML files that define which dashboards to load                             |
-| └─ `grafana-dashboards/`                  | Optional local JSON copies of dashboards (for offline loading)              |
+| │  └─ `dashboards/`                       | default-dashboards.yaml, logs-dashboards.yaml                             |
+| |  |_  `datasources/`                     | prometheus.yaml, loki.yaml, tempo.yml
+| └─ `grafana-dashboards/`                  | Local JSON copies(cadvisor-exporter.json,node-exporter-server-metrics.json) |
 | `django/`                                 | Django-specific instructions & files                                        |
 | ├─ `README.md`                            | Django setup guide                                                          |
 | ├─ `requirements-otel.txt`                | OTEL packages to add to requirements.txt                                    |
@@ -90,3 +90,16 @@ All backend services run in Docker Compose — just copy and run.
 | └─ `instrumentation.node.ts`              | OTEL SDK setup for Next.js (auto-loaded)                                    |
 | `docs/`                                   | Optional deeper guides                                                      |
 | └─ `env-vars-reference.md`                | Full list of configurable environment variables                             |
+
+# Troubleshooting Quick Checks
+
+Containers up? → docker compose ps
+Grafana healthy? → http://localhost:3000
+Prometheus scraping? → http://localhost:9090/targets (cadvisor & node_exporter UP)
+Tempo ready? → http://localhost:3200/ready ("ready")
+Loki logs flowing? → Explore → Loki → {job="docker-containers"}
+Host metrics visible? → Dashboards → Infrastructure → Node Exporter Server Metrics (select host if multiple)
+Container metrics visible? → Dashboards → Infrastructure → cAdvisor exporter
+
+Enjoy plug-and-play observability — traces across services, metrics from infra/apps, logs unified in one place.
+Contributions welcome (add more dashboards, FastAPI example, etc.)!
