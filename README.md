@@ -53,13 +53,22 @@ All backend services run in Docker Compose — just copy and run.
    
    ## cAdvisor exporter (ID 14282)
    Folder: Infrastructure
-   Shows: Per-container CPU usage, memory (RSS/cache), network RX/TX, disk I/O
-   Perfect for spotting resource-heavy containers
-   
+   Shows:
+         CPU Usage: Real-time processor consumption.
+         Memory Usage: Current RAM being used by each container.
+         Memory Cached: Amount of memory currently being used for cache.
+         Received Network Traffic: Data coming into the container.
+         Sent Network Traffic: Data being transmitted out of the container.
+         Container Information: A detailed table showing labels, working directories, image names, and the current "Running" status of your containers.
+            
    ## Node Exporter Server Metrics (ID 10242)
    Folder: Infrastructure
-   Shows: Host-level CPU (per core/mode), memory (used/free/swap), load average, disk space & I/O, network traffic, processes
-   Clean, modern single-host view (use the Host dropdown if multiple nodes appear)
+   Shows: 
+         System Load & CPU: Detailed breakdown of CPU usage (system, user, iowait) and load averages (1m, 5m, 15m).
+         Memory Utilization: Real-time stats for RAM, including used, free, cached, and swap usage.
+         Disk I/O & Storage: Disk throughput (read/write), IOPS, and percentage of filesystem space used.
+         Network Throughput: Live tracking of received and transmitted traffic across all network interfaces.
+         Hardware Health: Context switches, interrupts, and system uptime. 
    
    To add more (e.g. logs dashboards), place additional JSONs in shared/grafana-dashboards/ — they auto-load via provisioning.
    
