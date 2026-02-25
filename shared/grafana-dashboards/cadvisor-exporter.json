@@ -800,7 +800,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Cadvisor exporter",
+  "title": "All Containers Metrics",
   "uid": "pMEd7m0Mz",
   "version": 1,
   "description": "Simple exporter for cadvisor only"

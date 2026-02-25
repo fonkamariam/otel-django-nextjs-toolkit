@@ -1,0 +1,24 @@
+apiVersion: 1
+
+datasources:
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-1m'
+        spanEndTimeShift: '30m'
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{job="docker-containers"} | json | traceID="${__span.traceId}"'
+      tracesToMetrics:
+        datasourceUid: prometheus
+      serviceMap:
+        datasourceUid: prometheus
+    version: 1

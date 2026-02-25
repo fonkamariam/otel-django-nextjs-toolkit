@@ -20018,7 +20018,7 @@
     ]
   },
   "timezone": "browser",
-  "title": "Node Exporter Full with Node Name",
+  "title": "Host System Metrics",
   "version": 12,
   "description": "Fork dashboard https://grafana.com/dashboards/1860 \r\nChange list of host from instance(IP address) to hostname. So more readable."
 }
