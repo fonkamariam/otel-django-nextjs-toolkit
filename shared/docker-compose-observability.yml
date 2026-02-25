@@ -145,18 +145,17 @@ services:
     ports:
       - "3000:3000"   # Grafana UI - http://localhost:3000
     environment:
-      - GF_SECURITY_ADMIN_USER=admin  # Change this in production!
-      - GF_SECURITY_ADMIN_PASSWORD=admin  # Change this in production!
+       - GF_SECURITY_ADMIN_USER=admin  # Change this in production!
+       - GF_SECURITY_ADMIN_PASSWORD=admin  # Change this in production!
+       - GF_LOG_LEVEL=debug   # ← Add this line
     depends_on:
       - prometheus
       - loki
       - tempo
     volumes:
-    - grafana_data:/var/lib/grafana
-    # Provisioning: Grafana reads all *.yaml files inside this folder recursively
-    - ./shared/grafana-provisioning:/etc/grafana/provisioning:ro
-    # Optional: local dashboard JSON files (recommended for offline/fast loading)
-    # - ./shared/grafana-dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+      - ./shared/grafana-provisioning:/etc/grafana/provisioning:ro
+      - ./shared/grafana-dashboards:/var/lib/grafana/dashboards:ro   # ← ADD THIS LINE
 
 volumes:
   grafana_data:

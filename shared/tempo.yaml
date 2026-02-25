@@ -44,7 +44,8 @@ storage:
       search_encoding: snappy    # ← Recommended for search performance; can be 'none' if you don't need search on recent data
       # Optional extras (add if needed)
       # ingestion_time_range_slack: 2m
-      # version: vParquet4       # Modern default format
+      # version: vParquet4       # Modern default format                                # Compression algorithm for WAL (zstd is fast + good ratio)
+
 overrides:
   metrics_generator_processors: []                            # Disables metrics generation from traces (e.g. RED metrics)
                                                               # Saves CPU if you don't need trace-derived metrics

@@ -7,6 +7,12 @@ global:
   scrape_interval: 15s          # How often to scrape targets (default 15s)
   evaluation_interval: 15s        # How often to evaluate rules (default 15s)
   scrape_timeout: 10s            # Timeout for each scrape
+  
+  storage:
+    tsdb:
+      min_block_duration: 15m     # Minimum block duration for time-series data (default 15m)
+      max_block_duration: 60m    # Maximum block duration (default 60m)
+      retention: 3d             # How long to retain data (default 15d)
 
 # Alerting (optional – add Alertmanager later if needed)
 # alerting:
